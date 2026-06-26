@@ -1,0 +1,12 @@
+{
+  "name": "swift-secure8-push-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.0.0",
+    "mqtt": "^5.10.0"
+  }
+}
