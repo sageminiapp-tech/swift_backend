@@ -271,9 +271,6 @@ client.on('error', (err) => {
 
 client.on('message', async (topic, buffer) => {
   const payloadText = buffer.toString();
-  if (!topic.endsWith('/status')) {
-  console.log(`[MQTT] ${topic}: ${payloadText}`);
-}
 
   const parts = topic.split('/');
 
@@ -291,6 +288,15 @@ client.on('message', async (topic, buffer) => {
     return;
   }
 
+  // Ignore frequent status messages completely.
+  // Do not log them.
+  if (topic.endsWith('/status')) {
+    return;
+  }
+
+  // Only log useful non-status MQTT messages.
+  console.log(`[MQTT] ${topic}: ${payloadText}`);
+
   // Availability topic payload is plain text: online/offline.
   if (topic.endsWith('/availability')) {
     if (payloadText.trim().toLowerCase() === 'offline') {
@@ -299,11 +305,6 @@ client.on('message', async (topic, buffer) => {
       });
     }
 
-    return;
-  }
-
-  // Ignore frequent status messages to avoid notification spam.
-  if (topic.endsWith('/status')) {
     return;
   }
 
