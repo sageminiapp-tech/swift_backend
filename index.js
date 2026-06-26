@@ -271,7 +271,9 @@ client.on('error', (err) => {
 
 client.on('message', async (topic, buffer) => {
   const payloadText = buffer.toString();
+  if (!topic.endsWith('/status')) {
   console.log(`[MQTT] ${topic}: ${payloadText}`);
+}
 
   const parts = topic.split('/');
 
