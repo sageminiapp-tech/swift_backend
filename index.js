@@ -1,6 +1,107 @@
 const mqtt = require('mqtt');
 const http = require('http');
-const path = = payload.Zone || payload.zone || '00';const path = require('path');
+const path = require('path');
+
+const {
+  initializeApp,
+  cert,
+  applicationDefault,
+} = require('firebase-admin/app');
+
+const { getMessaging } = require('firebase-admin/messaging');
+
+function initializeFirebaseAdmin() {
+  const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+
+  if (serviceAccountBase64 && serviceAccountBase64.trim().length > 0) {
+    const json = Buffer.from(serviceAccountBase64, 'base64').toString('utf8');
+    const serviceAccount = JSON.parse(json);
+
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+
+    console.log('[FCM] Firebase initialized from FIREBASE_SERVICE_ACCOUNT_BASE64');
+    return;
+  }
+
+  const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  if (credentialPath && credentialPath.trim().length > 0) {
+    const absolutePath = path.resolve(process.cwd(), credentialPath);
+    const serviceAccount = require(absolutePath);
+
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+
+    console.log(`[FCM] Firebase initialized with service account: ${absolutePath}`);
+    return;
+  }
+
+  initializeApp({
+    credential: applicationDefault(),
+  });
+
+  console.log('[FCM] Firebase initialized with application default credentials');
+}
+
+initializeFirebaseAdmin();
+
+// Render health server.
+// Render assigns the port through process.env.PORT.
+const PORT = process.env.PORT || 3000;
+
+http
+  .createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Swift Secure8 push backend running');
+  })
+  .listen(PORT, () => {
+    console.log(`[HTTP] health server listening on port ${PORT}`);
+  });
+
+// MQTT configuration.
+const MQTT_HOST =
+  process.env.MQTT_HOST ||
+  'mqtts://cc187a17787c475ebb712129e0cb24e5.s1.eu.hivemq.cloud:8883';
+
+const MQTT_USERNAME = process.env.MQTT_USERNAME || 'espuser';
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD || 'secretP@ss1';
+
+// Optional panel allowlist.
+// Example Render variable:
+// ALLOWED_PANELS=DEA47F,3204B8,31FD3F
+const ALLOWED_PANELS = new Set(
+  (process.env.ALLOWED_PANELS || '')
+    .split(',')
+    .map((x) => x.trim().toUpperCase())
+    .filter(Boolean)
+);
+
+console.log(`[MQTT] host: ${MQTT_HOST}`);
+console.log(
+  `[MQTT] allowed panels: ${
+    ALLOWED_PANELS.size > 0 ? [...ALLOWED_PANELS].join(', ') : 'ALL'
+  }`
+);
+
+const client = mqtt.connect(MQTT_HOST, {
+  username: MQTT_USERNAME,
+  password: MQTT_PASSWORD,
+  clientId: `swift_secure8_push_${Date.now()}`,
+  protocolVersion: 4,
+  reconnectPeriod: 3000,
+  keepalive: 30,
+});
+
+function topicForPanel(chipid) {
+  return `panel_${String(chipid || '').toUpperCase()}`;
+}
+
+function notificationForEvent(event, payload) {
+  const panelName = payload.panelName || `Panel ${payload.chipid || ''}`.trim();
+  const zone = payload.Zone || payload.zone || '00';
 
   switch (event) {
     case 'alarm':
@@ -217,103 +318,3 @@ client.on('message', async (topic, buffer) => {
 
   await sendFcmToPanelTopic(chipid, event, payload);
 });
-
-const {
-  initializeApp,
-  cert,
-  applicationDefault,
-} = require('firebase-admin/app');
-
-const { getMessaging } = require('firebase-admin/messaging');
-
-function initializeFirebaseAdmin() {
-  const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-
-  if (serviceAccountBase64 && serviceAccountBase64.trim().length > 0) {
-    const json = Buffer.from(serviceAccountBase64, 'base64').toString('utf8');
-    const serviceAccount = JSON.parse(json);
-
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-
-    console.log('[FCM] Firebase initialized from FIREBASE_SERVICE_ACCOUNT_BASE64');
-    return;
-  }
-
-  const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-  if (credentialPath && credentialPath.trim().length > 0) {
-    const absolutePath = path.resolve(process.cwd(), credentialPath);
-    const serviceAccount = require(absolutePath);
-
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-
-    console.log(`[FCM] Firebase initialized with service account: ${absolutePath}`);
-    return;
-  }
-
-  initializeApp({
-    credential: applicationDefault(),
-  });
-
-  console.log('[FCM] Firebase initialized with application default credentials');
-}
-
-initializeFirebaseAdmin();
-
-// Render health server.
-// Render assigns the port through process.env.PORT.
-const PORT = process.env.PORT || 3000;
-
-http
-  .createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Swift Secure8 push backend running');
-  })
-  .listen(PORT, () => {
-    console.log(`[HTTP] health server listening on port ${PORT}`);
-  });
-
-// MQTT configuration.
-const MQTT_HOST =
-  process.env.MQTT_HOST ||
-  'mqtts://cc187a17787c475ebb712129e0cb24e5.s1.eu.hivemq.cloud:8883';
-
-const MQTT_USERNAME = process.env.MQTT_USERNAME || 'espuser';
-const MQTT_PASSWORD = process.env.MQTT_PASSWORD || 'secretP@ss1';
-
-// Optional panel allowlist.
-// Example Render variable:
-// ALLOWED_PANELS=DEA47F,3204B8,31FD3F
-const ALLOWED_PANELS = new Set(
-  (process.env.ALLOWED_PANELS || '')
-    .split(',')
-    .map((x) => x.trim().toUpperCase())
-    .filter(Boolean)
-);
-
-console.log(`[MQTT] host: ${MQTT_HOST}`);
-console.log(
-  `[MQTT] allowed panels: ${
-    ALLOWED_PANELS.size > 0 ? [...ALLOWED_PANELS].join(', ') : 'ALL'
-  }`
-);
-
-const client = mqtt.connect(MQTT_HOST, {
-  username: MQTT_USERNAME,
-  password: MQTT_PASSWORD,
-  clientId: `swift_secure8_push_${Date.now()}`,
-  protocolVersion: 4,
-  reconnectPeriod: 3000,
-  keepalive: 30,
-});
-
-function topicForPanel(chipid) {
-  return `panel_${String(chipid || '').toUpperCase()}`;
-}
-
-function notificationForEvent(event, payload) {
-  const panelName = payload.panelName || `Panel ${payload.chipid || ''}`.trim();
