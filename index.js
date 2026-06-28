@@ -192,13 +192,22 @@ async function sendFcmToPanelTopic(chipid, event, payload) {
       raw: JSON.stringify(payload),
     },
     android: {
-      priority: notification.priority === 'high' ? 'high' : 'normal',
-      notification: {
-        channelId:
-          notification.priority === 'high' ? 'alarm_alerts' : 'alarm_status',
-        sound: 'default',
-      },
-    },
+  priority: notification.priority === 'high' ? 'high' : 'normal',
+  notification: {
+    channelId:
+      event === 'panic'
+        ? 'panic_alerts_v1'
+        : notification.priority === 'high'
+          ? 'alarm_alerts_v2'
+          : 'alarm_status',
+    sound:
+      event === 'panic'
+        ? 'panic_sound'
+        : notification.priority === 'high'
+          ? 'alarm_sound'
+          : 'default',
+  },
+},
   };
 
   try {
@@ -209,10 +218,6 @@ async function sendFcmToPanelTopic(chipid, event, payload) {
     console.error('[FCM] send failed:', err);
   }
 }
-
-// TEMPORARY direct token test.
-// Keep this commented out on Render.
-// sendTestToToken('PASTE_PHONE_FCM_TOKEN_HERE');
 
 async function sendTestToToken(token) {
   const message = {
