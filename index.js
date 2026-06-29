@@ -195,13 +195,10 @@ async function sendFcmToPanelTopic(chipid, event, payload) {
   priority: notification.priority === 'high' ? 'high' : 'normal',
   notification: {
     channelId:
-  notification.priority === 'high'
-    ? 'alarm_alerts_v2'
-    : 'alarm_status',
-sound:
-  notification.priority === 'high'
-    ? 'alarm_sound'
-    : 'default',
+      notification.priority === 'high'
+        ? 'alarm_status'
+        : 'alarm_status',
+    sound: 'default',
   },
 },
   };
