@@ -196,9 +196,9 @@ async function sendFcmToPanelTopic(chipid, event, payload) {
     notification: {
       channelId:
         event === 'panic'
-          ? 'panic_sound_alerts_v1'
+          ? 'panic_sound_alerts_v3'
           : notification.priority === 'high'
-            ? 'alarm_sound_alerts_v1'
+            ? 'alarm_sound_alerts_v3'
             : 'alarm_status',
       sound:
         event === 'panic'
