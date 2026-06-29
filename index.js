@@ -192,15 +192,15 @@ async function sendFcmToPanelTopic(chipid, event, payload) {
       raw: JSON.stringify(payload),
     },
     android: {
-  priority: notification.priority === 'high' ? 'high' : 'normal',
-  notification: {
-    channelId:
-      notification.priority === 'high'
-        ? 'alarm_status'
-        : 'alarm_status',
-    sound: 'default',
+    priority: notification.priority === 'high' ? 'high' : 'normal',
+    notification: {
+      channelId:
+        notification.priority === 'high'
+          ? 'emergency_alerts_v1'
+          : 'alarm_status',
+      sound: 'default',
+    },
   },
-},
   };
 
   try {
